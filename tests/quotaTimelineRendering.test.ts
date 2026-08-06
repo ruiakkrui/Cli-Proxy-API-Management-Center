@@ -151,6 +151,28 @@ describe('QuotaTimeline rendering', () => {
     expect(markup).toContain('08/03 12:00');
   });
 
+  test('draws the remaining quota percentage in the current window', () => {
+    const markup = renderToStaticMarkup(
+      createElement(QuotaTimeline, {
+        ...baseProps,
+        quotaFor: () => ({
+          status: 'success',
+          windows: [
+            {
+              label: '7-day',
+              usedPercent: 25,
+              resetAtMs: new Date(2026, 7, 1, 12).getTime(),
+              periodHours: 168,
+            },
+          ],
+        }),
+      })
+    );
+
+    expect(markup).toContain('style="width:75%"');
+    expect(markup).not.toContain('style="width:25%"');
+  });
+
   test('stays hidden before any credential exposes a usable quota window', () => {
     const markup = renderToStaticMarkup(
       createElement(QuotaTimeline, {

@@ -401,12 +401,12 @@ function Lane({ lane, span, now, mode, cells, nowPercent, resolvedTheme }: LaneP
                   window.remaining !== null ? `\n${window.remaining}% remaining` : ''
                 }`}
               >
-                {/* Only the API-reported current window has meaningful usage;
+                {/* Only the API-reported current window has meaningful remaining quota;
                     projected windows intentionally have no fill. */}
                 {window.remaining !== null && (
                   <span
                     className={styles.windowFill}
-                    style={{ width: `${100 - window.remaining}%` }}
+                    style={{ width: `${window.remaining}%` }}
                   />
                 )}
                 {showLabel && (

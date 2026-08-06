@@ -292,10 +292,10 @@ $lane-width: 210px;
   color: var(--text-quaternary);
 }
 
-// Consumed portion of the current window, drawn behind its label.
+// Remaining portion of the current window, aligned to the right behind its label.
 .windowFill {
   position: absolute;
-  left: 0;
+  right: 0;
   top: 0;
   bottom: 0;
   background: color-mix(in srgb, var(--provider-accent) 34%, transparent);
