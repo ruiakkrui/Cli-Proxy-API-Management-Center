@@ -173,6 +173,49 @@ describe('QuotaTimeline rendering', () => {
     expect(markup).not.toContain('style="width:25%"');
   });
 
+  test('renders Codex primary and additional model quotas as separate rows', () => {
+    const markup = renderToStaticMarkup(
+      createElement(QuotaTimeline, {
+        entries: [
+          {
+            file: { name: 'codex-account.json', type: 'codex' },
+            type: 'codex',
+          },
+        ],
+        displayNameFor: () => 'account@example.com',
+        resolvedTheme: 'light',
+        now: new Date(2026, 6, 29, 12).getTime(),
+        quotaFor: () => ({
+          status: 'success',
+          windows: [
+            {
+              id: 'weekly',
+              label: 'Weekly limit',
+              labelKey: 'codex_quota.secondary_window',
+              usedPercent: 70,
+              resetAtMs: new Date(2026, 7, 1, 12).getTime(),
+              periodHours: 168,
+            },
+            {
+              id: 'gpt-5-3-codex-spark-weekly-0',
+              label: 'GPT-5.3-Codex-Spark weekly limit',
+              labelKey: 'codex_quota.additional_secondary_window',
+              labelParams: { name: 'GPT-5.3-Codex-Spark' },
+              usedPercent: 2,
+              resetAtMs: new Date(2026, 6, 31, 12).getTime(),
+              periodHours: 168,
+            },
+          ],
+        }),
+      })
+    );
+
+    expect(markup).toContain('account@example.com · Primary model');
+    expect(markup).toContain('account@example.com · GPT-5.3-Codex-Spark');
+    expect(markup).toContain('30%');
+    expect(markup).toContain('98%');
+  });
+
   test('stays hidden before any credential exposes a usable quota window', () => {
     const markup = renderToStaticMarkup(
       createElement(QuotaTimeline, {

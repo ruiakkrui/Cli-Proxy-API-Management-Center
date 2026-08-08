@@ -19,7 +19,7 @@ import { formatRelativeInstant, TYPE_COLORS } from '@/utils/quota';
 import { useNow } from '@/hooks/useNow';
 import type { ResolvedTheme, ThemeColors } from '@/types';
 import {
-  buildTimelineLane,
+  buildTimelineLanes,
   laneHasWindow,
   projectLane,
   projectResetCredits,
@@ -87,6 +87,9 @@ export function QuotaTimeline({
   // to the current period. Keeping its visible text hard-coded to "Today" made
   // successful previous/next navigation look as though the date never changed.
   const navigationLabel = offset === 0 ? todayLabel : formatDay(span.startMs);
+  const primaryModelLabel = t('quota_management.windows_primary_model', {
+    defaultValue: 'Primary model',
+  });
 
   const laneInputs = useMemo(
     () =>
@@ -103,24 +106,30 @@ export function QuotaTimeline({
   // real quota window. Once there is timeline data, however, changing zoom must
   // never remove the whole panel just because that mode has no matching lanes.
   const hasAnyLane = useMemo(
-    () => laneInputs.some((input) => laneHasWindow(buildTimelineLane(input))),
-    [laneInputs]
+    () =>
+      laneInputs.some((input) =>
+        buildTimelineLanes(input, primaryModelLabel).some((lane) => laneHasWindow(lane))
+      ),
+    [laneInputs, primaryModelLabel]
   );
 
   const lanes = useMemo(
     () =>
       laneInputs
-        .map((input) =>
-          buildTimelineLane({
-            ...input,
-            // Weekly mode prefers the longest readable window. Session mode
-            // asks specifically for a real 5-hour window; longer periods must
-            // not be reinterpreted as 5-hour resets.
-            maxPeriodHours: mode === 'session' ? 5 : span.days * 24,
-          })
+        .flatMap((input) =>
+          buildTimelineLanes(
+            {
+              ...input,
+              // Weekly mode prefers the longest readable window. Session mode
+              // asks specifically for a real 5-hour window; longer periods must
+              // not be reinterpreted as 5-hour resets.
+              maxPeriodHours: mode === 'session' ? 5 : span.days * 24,
+            },
+            primaryModelLabel
+          )
         )
         .filter((lane) => laneHasWindow(lane) && (mode !== 'session' || lane.periodHours === 5)),
-    [laneInputs, mode, span.days]
+    [laneInputs, mode, span.days, primaryModelLabel]
   );
 
   /** Weekly: one cell per day. Session: one per 6 hours. */

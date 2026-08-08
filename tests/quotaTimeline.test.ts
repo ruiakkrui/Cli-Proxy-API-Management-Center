@@ -3,6 +3,7 @@ import {
   DAY_MS,
   HOUR_MS,
   buildTimelineLane,
+  buildTimelineLanes,
   laneHasWindow,
   pickLaneWindow,
   projectLane,
@@ -518,5 +519,75 @@ describe('buildTimelineLane', () => {
       },
     });
     expect(lane.anchorMs).toBeNull();
+  });
+});
+
+describe('buildTimelineLanes', () => {
+  test('splits Codex account and additional-model windows into separate lanes', () => {
+    const accountReset = at(2026, 7, 1, 20);
+    const sparkReset = at(2026, 6, 29, 20);
+    const lanes = buildTimelineLanes(
+      {
+        name: 'codex.json',
+        displayName: 'account@example.com',
+        provider: 'codex',
+        quota: {
+          status: 'success',
+          windows: [
+            {
+              id: 'weekly',
+              label: 'Weekly limit',
+              labelKey: 'codex_quota.secondary_window',
+              usedPercent: 70,
+              resetAtMs: accountReset,
+              periodHours: 168,
+            },
+            {
+              id: 'gpt-5-3-codex-spark-weekly-0',
+              label: 'GPT-5.3-Codex-Spark weekly limit',
+              labelKey: 'codex_quota.additional_secondary_window',
+              labelParams: { name: 'GPT-5.3-Codex-Spark' },
+              usedPercent: 2,
+              resetAtMs: sparkReset,
+              periodHours: 168,
+            },
+          ],
+          rateLimitResetCredits: [
+            {
+              id: 'credit-1',
+              status: 'available',
+              grantedAt: '2026-07-20T12:00:00Z',
+              expiresAt: '2026-08-03T12:00:00Z',
+            },
+          ],
+        },
+        maxPeriodHours: 14 * 24,
+      },
+      '主模型'
+    );
+
+    expect(lanes).toHaveLength(2);
+    expect(lanes.map(({ displayName }) => displayName)).toEqual([
+      'account@example.com · 主模型',
+      'account@example.com · GPT-5.3-Codex-Spark',
+    ]);
+    expect(lanes.map(({ remaining }) => remaining)).toEqual([30, 98]);
+    expect(lanes.map(({ anchorMs }) => anchorMs)).toEqual([accountReset, sparkReset]);
+    expect(lanes[0]?.resetCredits).toHaveLength(1);
+    expect(lanes[1]?.resetCredits).toHaveLength(0);
+  });
+
+  test('keeps providers and Codex payloads without additional limits as one lane', () => {
+    const common = {
+      name: 'account.json',
+      displayName: 'Account',
+      quota: {
+        status: 'success',
+        windows: [{ label: 'Weekly', usedPercent: 10, resetAtMs: 5000, periodHours: 168 }],
+      },
+    };
+
+    expect(buildTimelineLanes({ ...common, provider: 'claude' })).toHaveLength(1);
+    expect(buildTimelineLanes({ ...common, provider: 'codex' })).toHaveLength(1);
   });
 });
