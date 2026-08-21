@@ -173,7 +173,7 @@ describe('QuotaTimeline rendering', () => {
     expect(markup).not.toContain('style="width:25%"');
   });
 
-  test('renders Codex primary and additional model quotas as separate rows', () => {
+  test('renders only the Codex primary-model quota row', () => {
     const markup = renderToStaticMarkup(
       createElement(QuotaTimeline, {
         entries: [
@@ -211,9 +211,9 @@ describe('QuotaTimeline rendering', () => {
     );
 
     expect(markup).toContain('account@example.com · Primary model');
-    expect(markup).toContain('account@example.com · GPT-5.3-Codex-Spark');
     expect(markup).toContain('30%');
-    expect(markup).toContain('98%');
+    expect(markup).not.toContain('GPT-5.3-Codex-Spark');
+    expect(markup).not.toContain('98%');
   });
 
   test('stays hidden before any credential exposes a usable quota window', () => {

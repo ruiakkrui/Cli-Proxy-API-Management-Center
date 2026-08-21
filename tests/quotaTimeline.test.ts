@@ -523,7 +523,7 @@ describe('buildTimelineLane', () => {
 });
 
 describe('buildTimelineLanes', () => {
-  test('splits Codex account and additional-model windows into separate lanes', () => {
+  test('keeps only the Codex primary-model windows', () => {
     const accountReset = at(2026, 7, 1, 20);
     const sparkReset = at(2026, 6, 29, 20);
     const lanes = buildTimelineLanes(
@@ -566,15 +566,12 @@ describe('buildTimelineLanes', () => {
       '主模型'
     );
 
-    expect(lanes).toHaveLength(2);
-    expect(lanes.map(({ displayName }) => displayName)).toEqual([
-      'account@example.com · 主模型',
-      'account@example.com · GPT-5.3-Codex-Spark',
-    ]);
-    expect(lanes.map(({ remaining }) => remaining)).toEqual([30, 98]);
-    expect(lanes.map(({ anchorMs }) => anchorMs)).toEqual([accountReset, sparkReset]);
+    expect(lanes).toHaveLength(1);
+    expect(lanes[0]?.displayName).toBe('account@example.com · 主模型');
+    expect(lanes[0]?.remaining).toBe(30);
+    expect(lanes[0]?.anchorMs).toBe(accountReset);
+    expect(lanes[0]?.limits).toEqual([{ label: 'Weekly limit', remaining: 30 }]);
     expect(lanes[0]?.resetCredits).toHaveLength(1);
-    expect(lanes[1]?.resetCredits).toHaveLength(0);
   });
 
   test('keeps providers and Codex payloads without additional limits as one lane', () => {

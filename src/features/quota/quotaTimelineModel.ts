@@ -271,7 +271,6 @@ interface WindowLike {
   id?: string;
   label?: string;
   labelKey?: string;
-  labelParams?: Record<string, string | number>;
   usedPercent?: number | null;
   resetAtMs?: number | null;
   periodHours?: number | null;
@@ -496,10 +495,10 @@ export function buildTimelineLane(input: TimelineLaneInput): TimelineLane {
 /**
  * Expand a credential into the rows it contributes to the timeline.
  *
- * Codex reports model-specific limits in `additional_rate_limits`. Combining
- * those with the primary windows makes one bar represent only one model while
- * the row lists several reset schedules. Keep the primary model and every
- * additional model in independent rows instead.
+ * Codex reports model-specific limits in `additional_rate_limits`. The timeline
+ * is an account-capacity overview, so additional-model windows (for example
+ * GPT-5.3-Codex-Spark) must not replace or appear beside the account's primary
+ * limits. Keep a single Codex row containing only the primary model windows.
  */
 export function buildTimelineLanes(
   input: TimelineLaneInput,
@@ -514,50 +513,16 @@ export function buildTimelineLanes(
     windows?: WindowLike[];
     rateLimitResetCredits?: ResetCreditLike[];
   };
-  const additionalGroups = new Map<string, WindowLike[]>();
-  const primaryWindows: WindowLike[] = [];
+  const primaryWindows = (quota.windows ?? []).filter(
+    (window) => window.labelKey?.startsWith('codex_quota.additional_') !== true
+  );
 
-  for (const window of quota.windows ?? []) {
-    const isAdditional = window.labelKey?.startsWith('codex_quota.additional_') === true;
-    if (!isAdditional) {
-      primaryWindows.push(window);
-      continue;
-    }
-
-    const modelName = String(window.labelParams?.name ?? window.label ?? 'Additional model');
-    const group = additionalGroups.get(modelName) ?? [];
-    group.push(window);
-    additionalGroups.set(modelName, group);
-  }
-
-  if (additionalGroups.size === 0) return [buildTimelineLane(input)];
-
-  const lanes: TimelineLane[] = [];
-  if (primaryWindows.length > 0) {
-    lanes.push(
-      buildTimelineLane({
-        ...input,
-        name: `${input.name}::primary`,
-        displayName: `${input.displayName} · ${primaryModelLabel}`,
-        quota: { ...quota, windows: primaryWindows } as TimelineLaneInput['quota'],
-      })
-    );
-  }
-
-  for (const [modelName, modelWindows] of additionalGroups) {
-    lanes.push(
-      buildTimelineLane({
-        ...input,
-        name: `${input.name}::additional::${modelName}`,
-        displayName: `${input.displayName} · ${modelName}`,
-        quota: {
-          ...quota,
-          windows: modelWindows,
-          rateLimitResetCredits: [],
-        } as TimelineLaneInput['quota'],
-      })
-    );
-  }
-
-  return lanes;
+  return [
+    buildTimelineLane({
+      ...input,
+      name: `${input.name}::primary`,
+      displayName: `${input.displayName} · ${primaryModelLabel}`,
+      quota: { ...quota, windows: primaryWindows } as TimelineLaneInput['quota'],
+    }),
+  ];
 }
